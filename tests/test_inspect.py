@@ -4,10 +4,9 @@ from pathlib import Path
 
 import pytest
 
+from aafconform import synthetic
 from aafconform.cli import main
 from aafconform.inspect_aaf import DumpOptions, dump_json, dump_text
-
-from . import synthetic
 
 SAMPLES = Path(__file__).resolve().parent.parent / "samples"
 

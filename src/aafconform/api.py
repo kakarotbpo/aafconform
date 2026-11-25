@@ -103,6 +103,21 @@ def _result(r: Result, output: str | None) -> dict:
         }
         for label, t, i, fx in report.effects_kept(r.plan, r.cut)
     ]
+    # Per output track, every event's position for drawing a timeline lane.
+    lanes = [
+        {
+            "label": label,
+            "name": t.name,
+            "mode": t.mode.value,
+            "length": t.length,
+            "items": [
+                [i.record_start, i.length, i.status.value]
+                for i in t.items
+                if i.status.value not in ("filler", "transition")
+            ],
+        }
+        for label, t in report.labelled(r.plan)
+    ]
     totals = {k: sum(t[k] for t in tracks) for k in ("kept", "built", "corrected", "other")}
     totals["flagged"] = len(r.plan.flagged)
     totals["effects"] = len(effects)
@@ -111,7 +126,7 @@ def _result(r: Result, output: str | None) -> dict:
         "cut": r.cut_name,
         "sequence": r.output_name or None,
         "output": output,
-        "timecode": {"fps": r.fps, "drop": r.drop},
+        "timecode": {"fps": r.fps, "drop": r.drop, "start": r.tc_start},
         "pin": r.cut.tracks[r.plan.pin].label,
         "tracks": tracks,
         "dropped": [r.cut.tracks[i].label for i in r.plan.dropped],
@@ -119,6 +134,9 @@ def _result(r: Result, output: str | None) -> dict:
         "totals": totals,
         "effects": effects,
         "events": [asdict(row) for row in rows],
+        "lanes": lanes,
+        "length": max((ln["length"] for ln in lanes), default=0),
+        "csv": None,
     }
 
 
@@ -161,6 +179,7 @@ def conform(
     rows = report.rows(r.plan, r.reference, r.tc_start, r.fps, r.drop)
     if csv_path:
         _guard(report.write_csv, csv_path, rows)
+        result["csv"] = str(csv_path)
     if json_path:
         summary = {k: result[k] for k in ("reference", "cut", "output", "sequence")}
         summary["flagged"] = result["totals"]["flagged"]

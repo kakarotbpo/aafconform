@@ -13,12 +13,19 @@ dependencies = ["pyaaf2>=1.7.1"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6"]
+app = ["pywebview>=5.3"]
 
 [project.scripts]
 aafconform = "aafconform.cli:main"
 
+[project.gui-scripts]
+aafconform-app = "aafconform.app.__main__:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"aafconform.app" = ["ui/*.html", "ui/*.css", "ui/*.js", "ui/fonts/*"]
 
 [tool.ruff]
 line-length = 100

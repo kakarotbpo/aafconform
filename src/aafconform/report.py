@@ -43,7 +43,7 @@ class Row:
     note: str
 
 
-def _labelled(plan: Plan):
+def labelled(plan: Plan):
     """(label, track) for picture then audio output tracks."""
     for n, t in enumerate(plan.picture, start=1):
         yield f"V{n}", t
@@ -53,7 +53,7 @@ def _labelled(plan: Plan):
 
 def rows(plan: Plan, ref: Reference, tc_start: int, fps: int, drop: bool) -> list[Row]:
     out = []
-    for label, t in _labelled(plan):
+    for label, t in labelled(plan):
         for i in t.items:
             if i.status is Status.FILLER and not i.note:
                 continue
@@ -96,7 +96,7 @@ def track_summary(label: str, cut: Cut, t) -> dict:
 
 
 def track_summaries(plan: Plan, cut: Cut) -> list[dict]:
-    return [track_summary(label, cut, t) for label, t in _labelled(plan)]
+    return [track_summary(label, cut, t) for label, t in labelled(plan)]
 
 
 def _track_line(label: str, cut: Cut, t) -> str:
@@ -126,7 +126,7 @@ def _track_line(label: str, cut: Cut, t) -> str:
 def effects_kept(plan: Plan, cut: Cut) -> list[tuple[str, object, object, tuple[str, ...]]]:
     """(label, track, item, effect names) for kept or corrected events with effects."""
     out = []
-    for label, t in _labelled(plan):
+    for label, t in labelled(plan):
         if t.mode is not Mode.REPAIR:
             continue
         for i in t.items:
@@ -144,7 +144,7 @@ def text(plan: Plan, ref: Reference, cut: Cut, tc_start: int, fps: int, drop: bo
     lines.append(f"Edit points for new tracks taken from cut {pin.label}.")
     lines.append("")
     lines.append("Output tracks:")
-    for label, t in _labelled(plan):
+    for label, t in labelled(plan):
         lines.append(_track_line(label, cut, t))
     if plan.dropped:
         names = ", ".join(cut.tracks[i].label for i in plan.dropped)

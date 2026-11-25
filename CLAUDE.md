@@ -20,6 +20,8 @@ python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'
 .venv/bin/ruff check . && .venv/bin/ruff format --check . # lint
 .venv/bin/aafconform inspect FILE.aaf [--kind CompositionMob] [--mob NAME] [--json]
 .venv/bin/aafconform conform LAYOUT.aaf CUT.aaf -o OUT.aaf [--pin A1] [--csv F] [--json F]
+.venv/bin/pip install -e '.[dev,app]' && .venv/bin/aafconform-app   # desktop app
+.venv/bin/python -m aafconform.app --serve                          # UI in a browser
 ```
 
 ## How Avid exports a multigroup (from the real samples, MC 25.12)
@@ -65,9 +67,19 @@ python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'
   retimed), gives the sequence a new MobID and name.
 - `conform.py` - orchestration: writes to `<out>.partial`, re-reads it to verify
   against the plan, then renames. `report.py` - terminal, CSV, JSON.
+- `api.py` - JSON-safe entry points for front ends (describe, preview, conform,
+  inspect); expected failures raise ApiError with an editor-facing message.
+- `app/` - the desktop app. `bridge.py` is what the window can call (returns
+  {ok, data|error}); `window.py` opens it with pywebview, served over its local
+  http server (fonts fail over file://); `devserver.py` serves the same UI to a
+  browser for development and the Playwright test in `tests/test_app.py`;
+  `ui/` is plain HTML/CSS/JS (escape everything from AAFs before innerHTML).
+  `aafconform-app --self-test` checks a packaged build end to end without a window.
+- `packaging/launcher.py` + `.github/workflows/build.yml` - PyInstaller build of
+  the Windows app, self-tested on the runner, zipped; attached to a Release on `v*` tags.
 - `inspect_aaf.py` - read-only dump. Prints every unmodelled property as an
   "extra" so Avid-specific data is never hidden.
-- `tests/synthetic.py` - pyaaf2-built fixtures; `build_avid_group` mirrors the real
+- `synthetic.py` - pyaaf2-built fixtures (in the package so the app self-test can use them); `build_avid_group` mirrors the real
   multigroup structure and exercises correction paths the samples don't.
   Real files in `samples/` (git-ignored) are ground truth: `test_conform.py`
   checks the output matches Avid's own fixed RESULT sample exactly.

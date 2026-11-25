@@ -5,9 +5,7 @@ import json
 
 import pytest
 
-from aafconform import api
-
-from . import synthetic
+from aafconform import api, synthetic
 
 
 @pytest.fixture(scope="module")

@@ -1,0 +1,49 @@
+name: Windows app
+
+on:
+  push:
+    tags: ["v*"]
+    branches: ["**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write  # attach the zip to a GitHub Release on version tags
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m pip install -e ".[app]" "pyinstaller>=6.10"
+      - name: Build
+        run: >
+          pyinstaller --noconfirm --clean --windowed --name aafconform
+          --icon src/aafconform/app/icon.ico
+          --add-data "src/aafconform/app/ui;aafconform/app/ui"
+          --collect-submodules aaf2
+          --collect-submodules aafconform
+          packaging/launcher.py
+      - name: Self-test the built app
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath dist\aafconform\aafconform.exe -ArgumentList '--self-test' -Wait -PassThru -NoNewWindow
+          if ($p.ExitCode -ne 0) { throw "self-test failed with exit code $($p.ExitCode)" }
+      - name: Package
+        shell: pwsh
+        run: |
+          Copy-Item LICENSE dist\aafconform\LICENSE.txt
+          Compress-Archive -Path dist\aafconform -DestinationPath aafconform-windows.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aafconform-windows
+          path: aafconform-windows.zip
+          retention-days: 30
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ github.ref_name }}" aafconform-windows.zip --title "aafconform ${{ github.ref_name }}" --generate-notes

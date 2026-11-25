@@ -7,12 +7,10 @@ from pathlib import Path
 import aaf2
 import pytest
 
-from aafconform import aafread
+from aafconform import aafread, synthetic
 from aafconform.cli import main
 from aafconform.conform import ConformError, conform
 from aafconform.model import Kind, Mode, Status
-
-from . import synthetic
 
 SAMPLES = Path(__file__).resolve().parent.parent / "samples"
 MASTER = SAMPLES / "CONFORM EXAMPLE MASTER LAYOUT.aaf"

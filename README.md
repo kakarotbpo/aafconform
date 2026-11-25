@@ -38,7 +38,22 @@ Early development. `inspect` and `conform` work against the sample exports from
 Media Composer 25.12, and conformed AAFs have been imported back into Media
 Composer successfully. Not yet tried on an episode-length cut.
 
+## Desktop app (Windows)
+
+Download `aafconform-windows.zip` from the latest
+[release](https://github.com/kakarotbpo/aafconform/releases) (or from the
+"Windows app" workflow run on the Actions tab), unzip it anywhere and run
+`aafconform.exe`. Nothing is installed and nothing leaves the machine.
+
+- Drop the master sequence AAF and the pull AAF onto the window (or use Choose
+  file, Ctrl+O), check the track plan, then Conform (Ctrl+Enter).
+- The new AAF is written next to the pull by default, with a CSV report beside it.
+- The app isn't code-signed yet, so the first launch shows Windows SmartScreen's
+  "Windows protected your PC": choose More info, then Run anyway.
+- It uses Microsoft Edge WebView2, which is built into Windows 10 and 11.
+
 ## Install
+
 
 Requires Python 3.10 or newer.
 
@@ -89,6 +104,9 @@ transitions and effects, and lists every property it doesn't model explicitly
 ## Development
 
 ```sh
+.venv/bin/pip install -e '.[dev,app]'
+.venv/bin/aafconform-app                    # the desktop app
+.venv/bin/python -m aafconform.app --serve  # the same interface in a browser
 .venv/bin/pytest            # tests (real AAFs in ./samples are picked up automatically)
 .venv/bin/ruff check .      # lint
 .venv/bin/ruff format .     # format
