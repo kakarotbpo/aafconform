@@ -46,6 +46,14 @@ def self_test() -> int:
             and Path(result["csv"]).exists()
         )
     print("self-test", "passed" if ok else "FAILED", result["totals"])
+    if ok and sys.platform == "win32":
+        # Load the window's .NET runtime (pythonnet) the way opening the
+        # window does, without showing one.
+        try:
+            import webview.platforms.winforms  # noqa: F401
+        except Exception as e:
+            print("self-test FAILED: window runtime did not load:", type(e).__name__, e)
+            return 1
     return 0 if ok else 1
 
 
