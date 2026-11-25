@@ -32,18 +32,22 @@ jobs:
         run: |
           $p = Start-Process -FilePath dist\aafconform\aafconform.exe -ArgumentList '--self-test' -Wait -PassThru -NoNewWindow
           if ($p.ExitCode -ne 0) { throw "self-test failed with exit code $($p.ExitCode)" }
-      - name: Package
+      - name: Add licence
         shell: pwsh
-        run: |
-          Copy-Item LICENSE dist\aafconform\LICENSE.txt
-          Compress-Archive -Path dist\aafconform -DestinationPath aafconform-windows.zip
+        run: Copy-Item LICENSE dist\aafconform\LICENSE.txt
+      # GitHub zips artifacts on download, so upload the folder itself:
+      # downloading gives one zip with aafconform.exe and its files inside.
       - uses: actions/upload-artifact@v4
         with:
           name: aafconform-windows
-          path: aafconform-windows.zip
+          path: dist/aafconform
           retention-days: 30
+      # Release assets are served as they are, so releases get our own zip.
       - name: Attach to release
         if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${{ github.ref_name }}" aafconform-windows.zip --title "aafconform ${{ github.ref_name }}" --generate-notes
+        run: |
+          Compress-Archive -Path dist\aafconform -DestinationPath aafconform-windows.zip
+          gh release create "${{ github.ref_name }}" aafconform-windows.zip --title "aafconform ${{ github.ref_name }}" --generate-notes
