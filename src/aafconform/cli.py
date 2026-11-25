@@ -34,10 +34,11 @@ def _cmd_conform(args: argparse.Namespace) -> int:
     from . import report
     from .aafread import ReadError
     from .aafwrite import WriteError
+    from .api import default_output
     from .conform import ConformError, conform
     from .match import MatchError
 
-    output = Path(args.output) if args.output else _default_output(Path(args.cut))
+    output = Path(args.output) if args.output else Path(default_output(args.cut))
     try:
         r = conform(
             args.reference,
@@ -69,10 +70,6 @@ def _cmd_conform(args: argparse.Namespace) -> int:
         }
         report.write_json(args.json, all_rows, summary)
     return 0
-
-
-def _default_output(cut: Path) -> Path:
-    return cut.with_name(f"{cut.stem} CONFORMED.aaf")
 
 
 def build_parser() -> argparse.ArgumentParser:

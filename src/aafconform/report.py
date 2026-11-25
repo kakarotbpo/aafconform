@@ -75,23 +75,45 @@ def rows(plan: Plan, ref: Reference, tc_start: int, fps: int, drop: bool) -> lis
     return out
 
 
-def _track_line(label: str, cut: Cut, t) -> str:
-    counts = Counter(i.status for i in t.items if i.status is not Status.TRANSITION)
-    parts = []
-    for status, word in (
-        (Status.KEPT, "kept"),
-        (Status.BUILT, "built"),
-        (Status.CORRECTED, "corrected"),
-        (Status.KEPT_OTHER, "other material"),
-        (Status.FLAGGED, "FLAGGED"),
-    ):
-        if counts[status]:
-            parts.append(f"{counts[status]} {word}")
-    dissolves = sum(1 for i in t.items if i.status is Status.TRANSITION)
-    if dissolves:
-        parts.append(f"{dissolves} dissolve{'s' if dissolves > 1 else ''}")
+def track_summary(label: str, cut: Cut, t) -> dict:
+    """One output track: where it comes from and what happened to its events."""
+    counts = Counter(i.status for i in t.items)
     tracks = cut.picture if t.kind == "picture" else cut.tracks
     src = tracks[t.cut_track].label if t.cut_track is not None else ""
+    return {
+        "label": label,
+        "name": t.name,
+        "kind": t.kind,
+        "mode": t.mode.value,
+        "source": src,
+        "kept": counts[Status.KEPT],
+        "built": counts[Status.BUILT],
+        "corrected": counts[Status.CORRECTED],
+        "other": counts[Status.KEPT_OTHER],
+        "flagged": counts[Status.FLAGGED],
+        "dissolves": counts[Status.TRANSITION],
+    }
+
+
+def track_summaries(plan: Plan, cut: Cut) -> list[dict]:
+    return [track_summary(label, cut, t) for label, t in _labelled(plan)]
+
+
+def _track_line(label: str, cut: Cut, t) -> str:
+    sm = track_summary(label, cut, t)
+    parts = []
+    for key, word in (
+        ("kept", "kept"),
+        ("built", "built"),
+        ("corrected", "corrected"),
+        ("other", "other material"),
+        ("flagged", "FLAGGED"),
+    ):
+        if sm[key]:
+            parts.append(f"{sm[key]} {word}")
+    if sm["dissolves"]:
+        parts.append(f"{sm['dissolves']} dissolve{'s' if sm['dissolves'] > 1 else ''}")
+    src = sm["source"]
     how = {
         Mode.REPAIR: f"kept from cut {src}",
         Mode.BUILD: f"built on {src} edits",
@@ -99,6 +121,21 @@ def _track_line(label: str, cut: Cut, t) -> str:
     }[t.mode]
     name = t.name or "-"
     return f"  {label:<4} {name[:16]:<16} {how:<30} {', '.join(parts) or 'empty'}"
+
+
+def effects_kept(plan: Plan, cut: Cut) -> list[tuple[str, object, object, tuple[str, ...]]]:
+    """(label, track, item, effect names) for kept or corrected events with effects."""
+    out = []
+    for label, t in _labelled(plan):
+        if t.mode is not Mode.REPAIR:
+            continue
+        for i in t.items:
+            if i.cut_index is None or i.status not in (Status.KEPT, Status.CORRECTED):
+                continue
+            names = _effects(cut, t, i)
+            if names:
+                out.append((label, t, i, names))
+    return out
 
 
 def text(plan: Plan, ref: Reference, cut: Cut, tc_start: int, fps: int, drop: bool) -> str:
@@ -124,15 +161,7 @@ def text(plan: Plan, ref: Reference, cut: Cut, tc_start: int, fps: int, drop: bo
         for r in all_rows
         if r.note and r.note != "matched by material" and r.status in ("kept", "built")
     ]
-    effects = [
-        (label, t, i)
-        for label, t in _labelled(plan)
-        if t.mode is Mode.REPAIR
-        for i in t.items
-        if i.cut_index is not None
-        and _effects(cut, t, i)
-        and i.status in (Status.KEPT, Status.CORRECTED)
-    ]
+    effects = effects_kept(plan, cut)
     for title, items in (
         ("Needs attention", flagged),
         ("Corrected", corrected),
@@ -146,10 +175,10 @@ def text(plan: Plan, ref: Reference, cut: Cut, tc_start: int, fps: int, drop: bo
         lines.append("")
     if effects:
         lines.append(f"Effects kept ({len(effects)}):")
-        for label, t, i in effects:
+        for label, t, i, fx in effects:
             tc_in = timecode(tc_start + i.record_start, fps, drop)
             tc_out = timecode(tc_start + i.record_start + i.length, fps, drop)
-            names = ", ".join(_effects(cut, t, i))
+            names = ", ".join(fx)
             lines.append(f"  {label:<4} {t.name[:12]:<12} {tc_in}-{tc_out}  {names}")
         lines.append("")
     if not flagged:

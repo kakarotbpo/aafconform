@@ -30,6 +30,40 @@ class Result:
     drop: bool
 
 
+def _plan(rf, f, pin, reference_seq, cut_seq):
+    """Read both open files and plan. Returns (Result without output, selectors, comp)."""
+    rcomp = aafread.pick_sequence(rf, reference_seq)
+    comp = aafread.pick_sequence(f, cut_seq)
+    if aafread.edit_rate(rcomp) != aafread.edit_rate(comp):
+        raise ConformError(
+            f"edit rates differ: reference {aafread.edit_rate(rcomp)}, "
+            f"cut {aafread.edit_rate(comp)}"
+        )
+    ref, selectors = aafread.read_reference(rf, rcomp)
+    cut_model = aafread.read_cut(comp)
+    plan = match.plan(ref, cut_model, pin)
+    tc_start, fps, drop = aafread.timecode_start(comp)
+    result = Result(plan, ref, cut_model, rcomp.name, comp.name, "", tc_start, fps, drop)
+    return result, selectors, comp
+
+
+def preview(
+    reference: Path,
+    cut: Path,
+    pin: int | None = None,
+    reference_seq: str | None = None,
+    cut_seq: str | None = None,
+) -> Result:
+    """What a conform would do, without writing anything."""
+    reference, cut = Path(reference), Path(cut)
+    for p in (reference, cut):
+        if not p.is_file():
+            raise ConformError(f"not found: {p}")
+    with aaf2.open(str(reference), "r") as rf, aaf2.open(str(cut), "r") as f:
+        result, _, _ = _plan(rf, f, pin, reference_seq, cut_seq)
+    return result
+
+
 def _check_paths(reference: Path, cut: Path, output: Path, force: bool) -> None:
     for p in (reference, cut):
         if not p.is_file():
@@ -56,27 +90,15 @@ def conform(
     shutil.copyfile(cut, partial)
     try:
         with aaf2.open(str(reference), "r") as rf, aaf2.open(str(partial), "rw") as f:
-            rcomp = aafread.pick_sequence(rf, reference_seq)
-            comp = aafread.pick_sequence(f, cut_seq)
-            if aafread.edit_rate(rcomp) != aafread.edit_rate(comp):
-                raise ConformError(
-                    f"edit rates differ: reference {aafread.edit_rate(rcomp)}, "
-                    f"cut {aafread.edit_rate(comp)}"
-                )
-            ref, selectors = aafread.read_reference(rf, rcomp)
-            cut_model = aafread.read_cut(comp)
-            plan = match.plan(ref, cut_model, pin)
-            tc_start, fps, drop = aafread.timecode_start(comp)
-            cut_name = comp.name
-            new = aafwrite.write(f, comp, plan, rf, selectors)
-            out_name = new.name
-            rname = rcomp.name
-        _verify(partial, out_name, plan, cut_model)
+            result, selectors, comp = _plan(rf, f, pin, reference_seq, cut_seq)
+            new = aafwrite.write(f, comp, result.plan, rf, selectors)
+            result.output_name = new.name
+        _verify(partial, result.output_name, result.plan, result.cut)
         os.replace(partial, output)
     except BaseException:
         partial.unlink(missing_ok=True)
         raise
-    return Result(plan, ref, cut_model, rname, cut_name, out_name, tc_start, fps, drop)
+    return result
 
 
 def _verify(path: Path, name: str, plan: Plan, cut: Cut) -> None:
