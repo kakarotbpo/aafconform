@@ -74,7 +74,13 @@ python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'
   http server (fonts fail over file://); `devserver.py` serves the same UI to a
   browser for development and the Playwright test in `tests/test_app.py`;
   `ui/` is plain HTML/CSS/JS (escape everything from AAFs before innerHTML).
-  `aafconform-app --self-test` checks a packaged build end to end without a window.
+  `aafconform-app --self-test` checks a packaged build end to end without a window
+  (and loads the .NET window runtime on Windows); `--log FILE` captures output,
+  since the windowed exe has no console.
+- Windows marks files unzipped from a download (Zone.Identifier), and pythonnet
+  then fails with "Failed to resolve Python.Runtime.Loader.Initialize". The app
+  clears the mark from its own folder at start (`unblock_own_files`); the build
+  marks every file and self-tests again to prove it.
 - `packaging/launcher.py` + `.github/workflows/build.yml` - PyInstaller build of
   the Windows app, self-tested on the runner, zipped; attached to a Release on `v*` tags.
 - `inspect_aaf.py` - read-only dump. Prints every unmodelled property as an
