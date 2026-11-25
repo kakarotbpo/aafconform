@@ -6,5 +6,7 @@ __pycache__/
 build/
 dist/
 # Real Avid sample AAFs may contain production metadata; keep them out of git by default
-samples/*.aaf
+samples/**/*.aaf
+samples/**/*.csv
+samples/**/*.txt
 out/

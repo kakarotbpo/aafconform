@@ -3,23 +3,40 @@
 Rebuild an Avid Media Composer cut against the proper multigroup from a reference
 sequence.
 
-Given two linked AAFs (no embedded media):
+Given two linked AAFs (no embedded media) exported from Media Composer:
 
-- **reference.aaf** - a sequence built from a multigroup with the correct camera
-  angles on V1 and the full iso audio mapping (for example A1 to A23)
-- **cut.aaf** - an edit of the same material with the wrong clip structure (pulled
-  multigroup video with one audio stream, or a single ungrouped camera with
-  ungrouped audio)
+- **master layout** - a sequence with the episode's track layout, where each audio
+  track plays the right channel of each scene's multigroup (for example MIX L,
+  MIX R, then one iso track per contributor)
+- **cut** - an edit built on the wrong sequence template, so some of those tracks
+  are missing or carry the wrong material
 
-`aafconform` produces a new AAF with the edit points of the cut, where every
-event is filled from the matching range of the reference multigroup on all tracks.
-The inputs are never modified.
+`aafconform` writes a new AAF with the master layout's audio tracks and the cut's
+edit points. The inputs are never modified.
+
+- Audio tracks the cut already has (for example MIX L and MIX R) are kept exactly
+  as the editor left them, with gain, dissolves and any non-group material such
+  as ADR. An event is only replaced when it is not provably from the correct
+  multigroup and channel, and the same material is found in the master layout.
+- Tracks the cut lacks are built on the cut's mix track edit points, so split
+  edits (L and J cuts) stay split. Audio dissolves are copied, gain is not.
+- Tracks the layout doesn't have (music, SFX) are kept after the layout's tracks.
+  Empty tracks are dropped.
+- Picture is checked too. Multigroup events are kept whatever camera angle they
+  play (that's an editing choice). Footage cut in outside the multigroup, such
+  as a camera master clip, is swapped for the multigroup when it is provably the
+  same picture. Effects on the event (Resize and so on) stay.
+- When the same footage sits in more than one place in the multigroup, the place
+  in sync with the cut's multigroup audio at that point is used. If none is, the
+  event is flagged.
+- Anything that can't be conformed safely (speed changes, material that belongs to
+  a different channel, ambiguous matches) is flagged in the report, never guessed.
 
 ## Status
 
-Early development. The read-only `inspect` command works. The `conform`
-command will be designed once real Media Composer sample exports have been
-inspected.
+Early development. `inspect` and `conform` work against the sample exports from
+Media Composer 25.12, and conformed AAFs have been imported back into Media
+Composer successfully. Not yet tried on an episode-length cut.
 
 ## Install
 
@@ -31,6 +48,29 @@ python3 -m venv .venv
 ```
 
 ## Usage
+
+### Conform a cut
+
+```sh
+aafconform conform "MASTER LAYOUT.aaf" "EDIT.aaf"                 # writes "EDIT CONFORMED.aaf"
+aafconform conform layout.aaf edit.aaf -o fixed.aaf --csv report.csv --json report.json
+aafconform conform layout.aaf edit.aaf --pin A2                   # take edits from A2
+```
+
+The new sequence is named after the cut with ` CONFORMED` added and gets a new
+MobID, so it can sit in the same bin as the original. The terminal report lists
+each output track, what was kept, built or corrected, and anything that needs
+attention, with record timecodes. The CSV and JSON reports have every event.
+
+### Importing the result into Media Composer
+
+Import the conformed AAF into the project the cut came from. Media Composer may
+ask about a "Group clip conflict" for the multigroup: answer **No** (or **No To
+All**). The conformed sequence links to the multigroup by ID, so it uses the
+project's own copy; answering Yes would replace it with the snapshot stored in
+the AAF, which can be older than the one in the project.
+
+Tested with Media Composer 25.12 (HD 1080i/50, 25 fps).
 
 ### Inspect an AAF
 
