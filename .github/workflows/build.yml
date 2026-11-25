@@ -34,8 +34,9 @@ jobs:
           Get-Content selftest.log
           if ($p.ExitCode -ne 0) { throw "self-test failed with exit code $($p.ExitCode)" }
       - name: Mark files as downloaded, like unzipping a download does
-        # Explorer tags files extracted from a downloaded zip with the
-        # internet zone; .NET refuses to load tagged DLLs unless handled.
+        # Explorer tags files extracted from a downloaded zip with the internet
+        # zone, and .NET then refuses the app's own DLLs. The app clears the
+        # tags from its own folder at start; this proves it still launches.
         shell: pwsh
         run: |
           Get-ChildItem dist\aafconform -Recurse -File | ForEach-Object {
@@ -47,9 +48,6 @@ jobs:
           $p = Start-Process -FilePath dist\aafconform\aafconform.exe -ArgumentList '--self-test','--log','selftest-downloaded.log' -Wait -PassThru -NoNewWindow
           Get-Content selftest-downloaded.log
           if ($p.ExitCode -ne 0) { throw "self-test as a downloaded copy failed with exit code $($p.ExitCode)" }
-      - name: Remove the download marks before uploading
-        shell: pwsh
-        run: Get-ChildItem dist\aafconform -Recurse -File | Unblock-File
       - name: Add licence
         shell: pwsh
         run: Copy-Item LICENSE dist\aafconform\LICENSE.txt

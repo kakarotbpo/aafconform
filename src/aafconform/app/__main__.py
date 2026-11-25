@@ -57,7 +57,32 @@ def self_test() -> int:
     return 0 if ok else 1
 
 
+def unblock_own_files() -> int:
+    """Clear Windows' "downloaded from the internet" mark from the app's files.
+
+    Explorer marks every file unzipped from a download (a Zone.Identifier
+    stream). The .NET runtime behind the window then refuses to load the app's
+    own DLLs ("Failed to resolve Python.Runtime.Loader.Initialize"). This is
+    what Properties > Unblock does, limited to the app's own folder.
+    """
+    if sys.platform != "win32" or not getattr(sys, "frozen", False):
+        return 0
+    import os
+    from pathlib import Path
+
+    cleared = 0
+    for path in Path(sys.executable).resolve().parent.rglob("*"):
+        if path.is_file():
+            try:
+                os.remove(f"{path}:Zone.Identifier")
+                cleared += 1
+            except OSError:  # not marked, or a read-only folder
+                pass
+    return cleared
+
+
 def main(argv: list[str] | None = None) -> int:
+    unblock_own_files()
     parser = argparse.ArgumentParser(prog="aafconform-app")
     parser.add_argument("--self-test", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--serve", action="store_true", help=argparse.SUPPRESS)
