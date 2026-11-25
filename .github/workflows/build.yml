@@ -27,6 +27,12 @@ jobs:
           --collect-submodules aaf2
           --collect-submodules aafconform
           packaging/launcher.py
+      - name: Self-test the built app
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath dist\aafconform\aafconform.exe -ArgumentList '--self-test','--log','selftest.log' -Wait -PassThru -NoNewWindow
+          Get-Content selftest.log
+          if ($p.ExitCode -ne 0) { throw "self-test failed with exit code $($p.ExitCode)" }
       - name: Mark files as downloaded, like unzipping a download does
         # Explorer tags files extracted from a downloaded zip with the
         # internet zone; .NET refuses to load tagged DLLs unless handled.
@@ -35,11 +41,15 @@ jobs:
           Get-ChildItem dist\aafconform -Recurse -File | ForEach-Object {
             Set-Content -LiteralPath $_.FullName -Stream Zone.Identifier -Value "[ZoneTransfer]`r`nZoneId=3"
           }
-      - name: Self-test the built app
+      - name: Self-test again as a downloaded copy
         shell: pwsh
         run: |
-          $p = Start-Process -FilePath dist\aafconform\aafconform.exe -ArgumentList '--self-test' -Wait -PassThru -NoNewWindow
-          if ($p.ExitCode -ne 0) { throw "self-test failed with exit code $($p.ExitCode)" }
+          $p = Start-Process -FilePath dist\aafconform\aafconform.exe -ArgumentList '--self-test','--log','selftest-downloaded.log' -Wait -PassThru -NoNewWindow
+          Get-Content selftest-downloaded.log
+          if ($p.ExitCode -ne 0) { throw "self-test as a downloaded copy failed with exit code $($p.ExitCode)" }
+      - name: Remove the download marks before uploading
+        shell: pwsh
+        run: Get-ChildItem dist\aafconform -Recurse -File | Unblock-File
       - name: Add licence
         shell: pwsh
         run: Copy-Item LICENSE dist\aafconform\LICENSE.txt

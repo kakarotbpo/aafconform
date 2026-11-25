@@ -63,7 +63,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--serve", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--port", type=int, default=8765, help=argparse.SUPPRESS)
     parser.add_argument("--debug", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--log", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
+    if args.log:  # a windowed exe has no console: write output to a file
+        sys.stdout = sys.stderr = open(args.log, "w", encoding="utf-8", buffering=1)  # noqa: SIM115
     if args.self_test:
         return self_test()
     if args.serve:
