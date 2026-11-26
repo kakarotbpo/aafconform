@@ -9,6 +9,36 @@ from __future__ import annotations
 
 import argparse
 import sys
+import time
+
+
+def _process_age() -> float:
+    """Seconds since this process was created, which on Windows is the double-click.
+
+    Loading Python itself takes a while before any of this code runs, so launch
+    timings count from the process start rather than from here.
+    """
+    if sys.platform != "win32":
+        return 0.0
+    try:  # only for the log: never let it stop the app starting
+        import ctypes
+        from ctypes import wintypes
+
+        kernel32 = ctypes.WinDLL("kernel32")
+        kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+        filetime = ctypes.POINTER(wintypes.FILETIME)
+        kernel32.GetProcessTimes.argtypes = [wintypes.HANDLE] + [filetime] * 4
+        kernel32.GetProcessTimes.restype = wintypes.BOOL
+        times = [wintypes.FILETIME() for _ in range(4)]
+        if not kernel32.GetProcessTimes(kernel32.GetCurrentProcess(), *map(ctypes.byref, times)):
+            return 0.0
+        created = (times[0].dwHighDateTime << 32 | times[0].dwLowDateTime) / 1e7 - 11644473600
+        return max(0.0, time.time() - created)
+    except Exception:
+        return 0.0
+
+
+STARTED = time.perf_counter() - _process_age()  # launch timings in the log count from here
 
 
 def self_test() -> int:
@@ -82,13 +112,14 @@ def unblock_own_files() -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    unblock_own_files()
+    unblocked = unblock_own_files()
     parser = argparse.ArgumentParser(prog="aafconform-app")
     parser.add_argument("--self-test", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--serve", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--port", type=int, default=8765, help=argparse.SUPPRESS)
     parser.add_argument("--debug", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--log", help=argparse.SUPPRESS)
+    parser.add_argument("--launch-test", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     if args.log:  # a windowed exe has no console: write output to a file
         sys.stdout = sys.stderr = open(args.log, "w", encoding="utf-8", buffering=1)  # noqa: SIM115
@@ -99,9 +130,10 @@ def main(argv: list[str] | None = None) -> int:
 
         serve(args.port)
         return 0
+    print(f"{time.perf_counter() - STARTED:5.2f}s python running, {unblocked} file(s) unblocked")
     from .window import run
 
-    run(debug=args.debug)
+    run(debug=args.debug, started=STARTED, launch_test=args.launch_test)
     return 0
 
 

@@ -76,7 +76,14 @@ python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'
   `ui/` is plain HTML/CSS/JS (escape everything from AAFs before innerHTML).
   `aafconform-app --self-test` checks a packaged build end to end without a window
   (and loads the .NET window runtime on Windows); `--log FILE` captures output,
-  since the windowed exe has no console.
+  since the windowed exe has no console, including launch timings counted from
+  the double-click. `--launch-test` opens the real window and closes it once the
+  page shows; the build runs it on the Windows runner.
+- On Windows the window shows a native "Starting aafconform..." label (added in
+  pywebview's `before_show`, on the GUI thread) until the page has painted:
+  WebView2 takes about a second after the window appears, several on first run.
+- A windowed exe that raises at start shows a modal dialog, which hangs CI
+  until the job's timeout. Startup code that only feeds the log must not raise.
 - `tests/test_window.py` runs the real window offscreen on pywebview's Qt backend
   and replays a file drop (needs `pip install PyQt6 PyQt6-WebEngine qtpy`,
   skipped without). Errors in pywebview event callbacks only reach the log.

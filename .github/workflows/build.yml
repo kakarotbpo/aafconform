@@ -12,6 +12,8 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    # A windowed exe that fails at start shows a dialog nobody can dismiss here.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -33,6 +35,19 @@ jobs:
           $p = Start-Process -FilePath dist\aafconform\aafconform.exe -ArgumentList '--self-test','--log','selftest.log' -Wait -PassThru -NoNewWindow
           Get-Content selftest.log
           if ($p.ExitCode -ne 0) { throw "self-test failed with exit code $($p.ExitCode)" }
+      - name: Open the window, timed
+        # The real window on the runner, closed again once the page is showing
+        # and the drop zones are wired. Twice: the first launch also creates
+        # the browser profile, which is most of its time.
+        shell: pwsh
+        timeout-minutes: 3
+        run: |
+          foreach ($n in 1, 2) {
+            $p = Start-Process -FilePath dist\aafconform\aafconform.exe -ArgumentList '--launch-test','--log',"launch$n.log" -Wait -PassThru
+            "launch ${n}: exit code $($p.ExitCode), timings from the double-click:"
+            Get-Content "launch$n.log"
+            if (-not (Select-String -Path "launch$n.log" -Pattern '^\s*[\d.]+s ready$' -Quiet)) { throw "launch ${n}: the window never got ready" }
+          }
       - name: Mark files as downloaded, like unzipping a download does
         # Explorer tags files extracted from a downloaded zip with the internet
         # zone, and .NET then refuses the app's own DLLs. The app clears the
