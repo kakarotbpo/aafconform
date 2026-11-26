@@ -13,8 +13,8 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install
@@ -53,7 +53,7 @@ jobs:
         run: Copy-Item LICENSE dist\aafconform\LICENSE.txt
       # GitHub zips artifacts on download, so upload the folder itself:
       # downloading gives one zip with aafconform.exe and its files inside.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: aafconform-windows
           path: dist/aafconform

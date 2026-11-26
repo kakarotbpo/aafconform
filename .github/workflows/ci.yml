@@ -17,17 +17,24 @@ jobs:
         os: [windows-latest, ubuntu-latest]
         python: ["3.10", "3.12"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
       - name: Install
-        run: python -m pip install -e ".[dev]"
+        run: python -m pip install -e ".[dev,app]"
       - name: Browser for the UI test
         if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
         run: |
           python -m pip install playwright
           python -m playwright install --with-deps chromium
+      - name: Qt for the desktop window test
+        # tests/test_window.py runs the real window offscreen on pywebview's
+        # Qt backend (Chromium's system libraries come from the step above).
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
+        run: |
+          sudo apt-get install -y --no-install-recommends libegl1 libgl1 libxkbcommon0
+          python -m pip install PyQt6 PyQt6-WebEngine qtpy
       - name: Lint
         run: |
           python -m ruff check .
