@@ -72,8 +72,9 @@ aafconform conform layout.aaf edit.aaf -o fixed.aaf --csv report.csv --json repo
 aafconform conform layout.aaf edit.aaf --pin A2                   # take edits from A2
 ```
 
-The new sequence is named after the cut with ` CONFORMED` added and gets a new
-MobID, so it can sit in the same bin as the original. The terminal report lists
+The new sequence is named after the output file (by default the cut's name with
+` CONFORMED` added), since that name is what Media Composer's bin shows, and gets
+a new MobID, so it can sit in the same bin as the original. The terminal report lists
 each output track, what was kept, built or corrected, and anything that needs
 attention, with record timecodes. The CSV and JSON reports have every event.
 

@@ -91,7 +91,9 @@ def conform(
     try:
         with aaf2.open(str(reference), "r") as rf, aaf2.open(str(partial), "rw") as f:
             result, selectors, comp = _plan(rf, f, pin, reference_seq, cut_seq)
-            new = aafwrite.write(f, comp, result.plan, rf, selectors)
+            # Media Composer shows the sequence's own name, not the file's:
+            # name it after the file so the bin matches what the editor chose.
+            new = aafwrite.write(f, comp, result.plan, rf, selectors, output.stem)
             result.output_name = new.name
         _verify(partial, result.output_name, result.plan, result.cut)
         os.replace(partial, output)

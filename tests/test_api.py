@@ -72,7 +72,7 @@ def test_conform_default_output_and_reports(files, tmp_path):
     out = tmp_path / "out.aaf"
     r = api.conform(ref, cut, out, csv_path=tmp_path / "r.csv", json_path=tmp_path / "r.json")
     assert (_sha(ref), _sha(cut)) == before
-    assert r["output"] == str(out) and r["sequence"] == "CUT CONFORMED"
+    assert r["output"] == str(out) and r["sequence"] == "out"
     assert out.exists() and (tmp_path / "r.csv").exists()
     assert json.loads((tmp_path / "r.json").read_text())["flagged"] == 1
     assert api.default_output(cut).endswith("cut CONFORMED.aaf")

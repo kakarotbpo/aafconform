@@ -79,6 +79,8 @@ class Bridge:
         replace: bool = False,
     ) -> dict:
         out = Path(output)
+        if out.suffix.lower() != ".aaf":  # "EP101 v1.2" is a name, not a .2 file
+            out = out.with_name(out.name + ".aaf")
         stem = out.with_suffix("")
         return _call(
             api.conform,

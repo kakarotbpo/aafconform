@@ -35,7 +35,7 @@ def group_files(tmp_path_factory):
 def conformed(group_files, tmp_path_factory):
     ref, cut = group_files
     before = (_sha(ref), _sha(cut))
-    out = tmp_path_factory.mktemp("out") / "out.aaf"
+    out = tmp_path_factory.mktemp("out") / "EP101 v3 FIXED.aaf"
     result = conform(ref, cut, out)
     assert (_sha(ref), _sha(cut)) == before, "inputs must never be modified"
     return result, out
@@ -78,7 +78,7 @@ def test_plan_on_synthetic_group(conformed):
 def test_written_tracks_and_events(conformed):
     _, out = conformed
     name, cut, slot_ids = _written(out)
-    assert name == "CUT CONFORMED"
+    assert name == "EP101 v3 FIXED"  # named after the file: it's what Avid's bin shows
     assert slot_ids == list(range(1, len(slot_ids) + 1))
     assert [t.name for t in cut.tracks] == ["MIX L", "MIX R", "ISO 1", "ISO 2", ""]
     assert all(t.length == 240 for t in cut.tracks)

@@ -7,8 +7,6 @@ cut on import), and its audio tracks are replaced by the planned ones.
 
 from __future__ import annotations
 
-import re
-
 from aaf2.mobid import MobID
 
 from .aafread import (
@@ -24,11 +22,6 @@ from .model import Mode, OutTrack, Plan, Status
 
 class WriteError(Exception):
     pass
-
-
-def output_name(name: str) -> str:
-    base = re.sub(r"\.Exported\.\d+$", "", name or "sequence")
-    return f"{base} CONFORMED"
 
 
 _TIMED = {"Selector", "OperationGroup", "Sequence", "SourceClip"}
@@ -142,9 +135,9 @@ def _repaired_slot(f, cut_slot, track: OutTrack, ref_selectors):
     return slot
 
 
-def write(f, comp, plan: Plan, ref_f, ref_selectors) -> object:
+def write(f, comp, plan: Plan, ref_f, ref_selectors, name: str) -> object:
     """Rebuild `comp` in file `f` (opened 'rw'): audio tracks per the plan, picture
-    events corrected in place. Returns the new sequence."""
+    events corrected in place, as a new sequence called `name`. Returns it."""
     groups = {
         i.group
         for t in (*plan.tracks, *plan.picture)
@@ -204,7 +197,7 @@ def write(f, comp, plan: Plan, ref_f, ref_selectors) -> object:
     for _, slot in ordered:
         new.slots.append(slot)
     new.mob_id = MobID.new()
-    new.name = output_name(comp.name)
+    new.name = name
     f.content.mobs.pop(comp.mob_id)
     f.content.mobs.append(new)
     return new
