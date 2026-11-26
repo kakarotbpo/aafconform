@@ -77,6 +77,12 @@ python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'
   `aafconform-app --self-test` checks a packaged build end to end without a window
   (and loads the .NET window runtime on Windows); `--log FILE` captures output,
   since the windowed exe has no console.
+- `tests/test_window.py` runs the real window offscreen on pywebview's Qt backend
+  and replays a file drop (needs `pip install PyQt6 PyQt6-WebEngine qtpy`,
+  skipped without). Errors in pywebview event callbacks only reach the log.
+- pywebview: register DOM events with `element.on("drop", ...)`, not
+  `element.events.drop +=`. The `events` list only holds handlers found two
+  prototypes up, so it has no `drop` on a `<section>` (AttributeError).
 - Windows marks files unzipped from a download (Zone.Identifier), and pythonnet
   then fails with "Failed to resolve Python.Runtime.Loader.Initialize". The app
   clears the mark from its own folder at start (`unblock_own_files`); the build

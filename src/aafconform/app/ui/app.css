@@ -14,6 +14,7 @@
 }
 
 :root {
+  color-scheme: dark;
   --bg: #0e0e10;
   --bg-deep: #0a0a0c;
   --elevated: #161618;
@@ -154,7 +155,10 @@ h2 { margin: 0; font-size: 15px; font-weight: 600; }
 .drop.hot .well, .drop.loaded .well { border-color: rgba(232, 168, 56, 0.45); }
 .drop .title { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; }
 .drop .desc { margin: 0; max-width: 340px; font-size: 13px; line-height: 1.5; color: var(--muted); }
-.drop .file { font-family: var(--mono); font-size: 11px; color: var(--subtle); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.drop .file { font-family: var(--mono); font-size: 11px; color: var(--subtle); max-width: 100%; display: flex; white-space: nowrap; }
+.drop .file span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.drop .file .dir { flex: 0 1 auto; }
+.drop .file .name { flex: none; max-width: 100%; color: var(--muted); }
 .drop .err { font-size: 13px; color: var(--danger); max-width: 380px; line-height: 1.45; }
 .drop .row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .how { display: flex; gap: 24px; flex-wrap: wrap; padding: 20px 22px; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-deep); }
@@ -206,8 +210,13 @@ dl.facts dd { margin: 4px 0 0; font-family: var(--mono); font-size: 13px; color:
 .attn { display: flex; gap: 14px; align-items: flex-start; padding: 14px 18px; flex-wrap: wrap; }
 .attn ul { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
 .attn li { font-size: 13px; color: var(--reading); line-height: 1.5; }
-.outrow { padding: 16px 18px; display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-end; }
+/* Top-aligned (the file field has a line below it); the checkboxes skip the label line. */
+.outrow { padding: 16px 18px; display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
 .outrow .field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.outrow .field > .lab { line-height: 14px; }
+.outrow .checks { display: flex; gap: 18px; height: 32px; align-items: center; margin-top: 22px; }
+.seqname { font-size: 12px; color: var(--subtle); overflow-wrap: anywhere; }
+.seqname b { font-weight: 500; color: var(--muted); }
 .bar {
   display: flex; align-items: center; gap: 16px; padding: 14px 18px; border-top: 1px solid var(--border);
   background: var(--bg); border-radius: 0 0 8px 8px; flex-wrap: wrap;
@@ -259,13 +268,13 @@ dl.facts dd { margin: 4px 0 0; font-family: var(--mono); font-size: 13px; color:
 .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .table { max-height: 440px; overflow: auto; }
 .thead, .trow {
-  display: grid; grid-template-columns: 52px minmax(80px, 110px) 176px 132px minmax(0, 1fr);
-  gap: 12px; align-items: center; padding: 0 16px; min-width: 720px;
+  display: grid; grid-template-columns: 52px minmax(80px, 110px) 190px 132px minmax(0, 1fr);
+  gap: 12px; align-items: center; padding: 0 16px; min-width: 734px;
 }
 .thead { height: 34px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--elevated); }
 .trow {
-  all: unset; display: grid; grid-template-columns: 52px minmax(80px, 110px) 176px 132px minmax(0, 1fr);
-  gap: 12px; align-items: center; padding: 0 16px; min-width: 720px; box-sizing: border-box; width: 100%;
+  all: unset; display: grid; grid-template-columns: 52px minmax(80px, 110px) 190px 132px minmax(0, 1fr);
+  gap: 12px; align-items: center; padding: 0 16px; min-width: 734px; box-sizing: border-box; width: 100%;
   height: 40px; border-bottom: 1px solid var(--border-subtle); font-family: var(--mono); font-size: 12px; cursor: pointer;
 }
 .trow:hover { background: var(--hover); }

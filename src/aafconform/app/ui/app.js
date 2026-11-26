@@ -68,7 +68,7 @@ const ZONES = {
   },
   cut: {
     num: "02",
-    lab: "Pull · to fix",
+    lab: "Pull to fix",
     labColor: "var(--bone)",
     title: "Drop the pull AAF",
     desc: "The cut made on the wrong template. Its edits, effects and L and J cuts are kept.",
@@ -133,9 +133,17 @@ function show(screen) {
   });
   void order;
   window.scrollTo(0, 0);
+  // Only measurable once visible: renderCheck runs while the screen is hidden.
+  if (screen === "check") showPathEnd($("#out"));
 }
 
 /* ---------- 01 load ---------- */
+
+// The folder shortens first so the file name stays readable in a narrow box.
+function pathHtml(path) {
+  const cut = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"), 0);
+  return `<span class="dir">${esc(path.slice(0, cut))}</span><span class="name">${esc(path.slice(cut))}</span>`;
+}
 
 function zoneHtml(kind) {
   const z = ZONES[kind];
@@ -150,15 +158,17 @@ function zoneHtml(kind) {
     const audio = seq.sound.length;
     return `<div class="well" style="color:var(--accent)">${icon}</div>${lab}
       <div class="title">${esc(seq.name)}</div>
-      <div class="file" title="${esc(f.path)}">${esc(f.path)}</div>
+      <div class="file" title="${esc(f.path)}">${pathHtml(f.path)}</div>
       <div class="mono" style="font-size:11px;color:var(--muted)">${seq.fps} fps · ${esc(seq.duration)} · ${plural(seq.picture.length, "picture track")} · ${plural(audio, "audio track")}</div>
       <div class="row"><button class="btn" type="button" data-choose="${kind}">Replace…</button></div>`;
   }
   const err = S.errors[kind] ? `<div class="err" role="alert">${esc(S.errors[kind])}</div>` : "";
+  // Ctrl O opens one zone at a time (see onKey): show the hint only there.
+  const hint = kind === ctrlOTarget() ? ` <span class="kk">Ctrl O</span>` : "";
   return `<div class="well" style="color:${S.hot === kind ? "var(--accent)" : "var(--muted)"}">${icon}</div>${lab}
     <div class="title">${esc(z.title)}</div>
     <p class="desc">${esc(z.desc)}</p>${err}
-    <div class="row"><button class="btn" type="button" data-choose="${kind}">Choose file… <span class="kk">Ctrl O</span></button></div>`;
+    <div class="row"><button class="btn" type="button" data-choose="${kind}">Choose file…${hint}</button></div>`;
 }
 
 function renderStart() {
@@ -245,7 +255,7 @@ function fileCard(kind, extra) {
     return t ? t.events : 0;
   })();
   return `<section class="card" aria-label="${isRef ? "Master layout" : "Pull"}">
-    <header><span class="lab" style="color:${isRef ? "var(--sand)" : "var(--bone)"}">${isRef ? "Master layout" : "Pull · to fix"}</span>
+    <header><span class="lab" style="color:${isRef ? "var(--sand)" : "var(--bone)"}">${isRef ? "Master layout" : "Pull to fix"}</span>
       <div class="spacer"></div><button class="btn ghost" type="button" data-replace="${kind}" style="height:28px">Replace</button></header>
     <div class="body">
       <div><div class="name">${esc(seq.name)}</div><div class="path">${esc(f.path)}</div></div>
@@ -288,6 +298,18 @@ function whatHappens(t, p) {
   const base = t.kind === "picture" ? "Kept as cut, every camera angle as chosen." : "Kept as you left it, gain and dissolves included.";
   const fx = effects ? ` ${plural(effects, "effect")} kept.` : "";
   return `${base}${ok(t.corrected, plural(t.corrected, "clip") + " used outside the multigroup swapped back in.")}${fx}${warn}`;
+}
+
+// The conformed sequence is named after the file (conform.py), with .aaf added
+// if missing (bridge.py): show the editor what the bin will say.
+function sequenceName(path) {
+  const name = path.slice(Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\")) + 1);
+  return name.replace(/\.aaf$/i, "");
+}
+
+// A long path shows its end, where the file name is.
+function showPathEnd(input) {
+  if (input) input.scrollLeft = input.scrollWidth;
 }
 
 function renderCheck() {
@@ -352,9 +374,10 @@ function renderCheck() {
     <section class="card" aria-label="Output">
       <div class="outrow">
         <div class="field" style="flex:2 1 420px"><label class="lab" for="out">New AAF</label>
-          <div style="display:flex;gap:8px"><input id="out" class="in" style="flex:1" value="${esc(S.output)}" spellcheck="false"><button class="btn" type="button" id="change-out">Change…</button></div></div>
+          <div style="display:flex;gap:8px"><input id="out" class="in" style="flex:1" value="${esc(S.output)}" spellcheck="false"><button class="btn" type="button" id="change-out">Change…</button></div>
+          <div class="seqname">Sequence in Media Composer: <b id="seqname">${esc(sequenceName(S.output))}</b></div></div>
         <div class="field" style="flex:1 1 220px"><label class="lab" for="pin">Edit points for new tracks</label><select id="pin" class="in">${pinOptions}</select></div>
-        <div style="display:flex;gap:18px;height:32px;align-items:center">
+        <div class="checks">
           <label class="check"><input type="checkbox" id="csv"${S.csv ? " checked" : ""}>Report CSV</label>
           <label class="check"><input type="checkbox" id="json"${S.json ? " checked" : ""}>Report JSON</label></div>
       </div>
@@ -368,6 +391,7 @@ function renderCheck() {
         <span class="mono" style="font-size:11px;color:var(--subtle);display:inline-flex;gap:4px"><span class="kk">Ctrl</span><span class="kk">↵</span></span>
         <button class="primary" type="button" id="conform">Conform ${ICON.arrow}</button></div>
     </section>`;
+  showPathEnd($("#out"));
 }
 
 async function conform() {
@@ -604,6 +628,10 @@ function onClick(e) {
   }
 }
 
+function onInput(e) {
+  if (e.target.id === "out") $("#seqname").textContent = sequenceName(e.target.value.trim());
+}
+
 function onChange(e) {
   const t = e.target;
   if (t.id === "pin") {
@@ -649,11 +677,15 @@ function wireDrops() {
   window.addEventListener("drop", (ev) => ev.preventDefault());
 }
 
+function ctrlOTarget() {
+  return S.files.reference ? "cut" : "reference";
+}
+
 function onKey(e) {
   const ctrl = e.ctrlKey || e.metaKey;
   if (ctrl && e.key.toLowerCase() === "o" && S.screen === "start") {
     e.preventDefault();
-    return choose(S.files.reference ? "cut" : "reference");
+    return choose(ctrlOTarget());
   }
   if (ctrl && e.key === "Enter" && S.screen === "check" && S.preview) {
     e.preventDefault();
@@ -663,12 +695,17 @@ function onKey(e) {
 
 window.app = {
   dropped: (kind, path) => load(kind, path),
+  dropFailed: (kind) => {
+    S.errors[kind] = "Couldn't tell where that file is. Use Choose file… instead.";
+    renderStart();
+  },
   load: (kind, path) => load(kind, path),
   state: S,
 };
 
 document.addEventListener("click", onClick);
 document.addEventListener("change", onChange);
+document.addEventListener("input", onInput);
 document.addEventListener("keydown", onKey);
 wireDrops();
 renderStart();
